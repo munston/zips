@@ -1,0 +1,41 @@
+name: Export Haskell toolchain
+on:
+  push:
+    paths:
+      - .github/workflows/export-haskell-toolchain.yml
+  workflow_dispatch:
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Select Haskell toolchain
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.7'
+          cabal-version: '3.10.3.0'
+      - name: Package toolchain
+        shell: bash
+        run: |
+          set -euxo pipefail
+          ghc --version
+          cabal --version
+          GHC_BIN="$(readlink -f "$(command -v ghc)")"
+          CABAL_BIN="$(readlink -f "$(command -v cabal)")"
+          GHC_PREFIX="$(dirname "$(dirname "$GHC_BIN")")"
+          printf 'GHC_BIN=%s\nGHC_PREFIX=%s\nCABAL_BIN=%s\n' "$GHC_BIN" "$GHC_PREFIX" "$CABAL_BIN"
+          mkdir -p haskell-toolchain
+          tar -C "$GHC_PREFIX" -cJf haskell-toolchain/ghc-prefix.tar.xz .
+          cp -L "$CABAL_BIN" haskell-toolchain/cabal
+          chmod +x haskell-toolchain/cabal
+          {
+            ghc --version
+            cabal --version
+            printf 'ghc_prefix=%s\n' "$GHC_PREFIX"
+          } > haskell-toolchain/manifest.txt
+      - name: Upload toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: haskell-linux-x86_64-ghc-9.6.7-cabal-3.10.3.0
+          path: haskell-toolchain
+          compression-level: 0
+          retention-days: 1
