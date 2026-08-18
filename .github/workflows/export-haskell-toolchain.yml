@@ -1,8 +1,5 @@
 name: Export Haskell toolchain
 on:
-  push:
-    paths:
-      - .github/workflows/export-haskell-toolchain.yml
   pull_request:
   workflow_dispatch:
 jobs:
@@ -18,16 +15,40 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          ghc --version
-          cabal --version
           GHC_BIN="$(readlink -f "$(command -v ghc)")"
           CABAL_BIN="$(readlink -f "$(command -v cabal)")"
           GHC_PREFIX="$(dirname "$(dirname "$GHC_BIN")")"
-          printf 'GHC_BIN=%s\nGHC_PREFIX=%s\nCABAL_BIN=%s\n' "$GHC_BIN" "$GHC_PREFIX" "$CABAL_BIN"
           mkdir -p haskell-toolchain
-          tar -C "$GHC_PREFIX" -cJf haskell-toolchain/ghc-prefix.tar.xz .
+          tar -C "$GHC_PREFIX" --zstd -cf haskell-toolchain/ghc-prefix.tar.zst .
           cp -L "$CABAL_BIN" haskell-toolchain/cabal
           chmod +x haskell-toolchain/cabal
+          cat > haskell-toolchain/install.sh <<'EOF'
+          #!/bin/sh
+          set -eu
+          VERSION=9.6.7
+          PREFIX="/usr/local/.ghcup/ghc/$VERSION"
+          HERE="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+          mkdir -p "$PREFIX" /usr/local/bin "$HOME/.cabal"
+          tar -C "$PREFIX" --zstd -xf "$HERE/ghc-prefix.tar.zst"
+          cp "$HERE/cabal" /usr/local/bin/cabal
+          chmod +x /usr/local/bin/cabal
+          for f in "$PREFIX"/bin/*; do
+            [ -x "$f" ] || continue
+            ln -sf "$f" "/usr/local/bin/$(basename "$f")"
+          done
+          if [ -f "$HOME/.cabal/config" ]; then
+            if grep -q '^active-repositories:' "$HOME/.cabal/config"; then
+              sed -i 's/^active-repositories:.*/active-repositories: none/' "$HOME/.cabal/config"
+            else
+              printf '\nactive-repositories: none\n' >> "$HOME/.cabal/config"
+            fi
+          else
+            printf 'active-repositories: none\n' > "$HOME/.cabal/config"
+          fi
+          ghc --version
+          cabal --version
+          EOF
+          chmod +x haskell-toolchain/install.sh
           {
             ghc --version
             cabal --version
