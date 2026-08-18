@@ -1,2 +1,0 @@
-temporary trigger for exporting a Linux GHC/Cabal toolchain artifact
-retrigger
