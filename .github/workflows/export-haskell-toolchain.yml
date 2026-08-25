@@ -1,5 +1,8 @@
 name: Export Haskell toolchain
 on:
+  push:
+    branches:
+      - haskell-toolchain-export
   pull_request:
   workflow_dispatch:
 jobs:
