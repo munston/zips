@@ -6,19 +6,28 @@ jobs:
   export:
     runs-on: ubuntu-24.04
     steps:
-      - name: Fetch sources
+      - name: Select Haskell toolchain
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.7'
+          cabal-version: '3.10.3.0'
+      - name: Fetch chart dependency closure
         shell: bash
         run: |
           set -euxo pipefail
+          cabal update
+          cabal install --lib --only-download \
+            'Chart >=1.9 && <1.10' \
+            'Chart-diagrams >=1.9 && <1.10' \
+            'data-default-class >=0.1 && <0.3' \
+            'lens >=5.0 && <5.4' \
+            JuicyPixels rasterific-svg svg-tree random split
           mkdir -p deps
-          curl -L --fail -o deps/splitmix-0.1.3.2.tar.gz https://hackage.haskell.org/package/splitmix-0.1.3.2/splitmix-0.1.3.2.tar.gz
-          curl -L --fail -o deps/random-1.2.1.3.tar.gz https://hackage.haskell.org/package/random-1.2.1.3/random-1.2.1.3.tar.gz
-          curl -L --fail -o deps/split-0.2.5.tar.gz https://hackage.haskell.org/package/split-0.2.5/split-0.2.5.tar.gz
-          sha256sum deps/* > deps/SHA256SUMS
+          cp -a "$HOME/.cabal/packages/hackage.haskell.org" deps/
       - name: Upload sources
         uses: actions/upload-artifact@v4
         with:
-          name: haskell-random-deps
+          name: haskell-chart-deps-cache
           path: deps
           compression-level: 0
           retention-days: 1
