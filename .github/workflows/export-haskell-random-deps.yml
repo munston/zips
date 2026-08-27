@@ -16,12 +16,7 @@ jobs:
         run: |
           set -euxo pipefail
           cabal update
-          cabal install --lib --only-download \
-            'Chart >=1.9 && <1.10' \
-            'Chart-diagrams >=1.9 && <1.10' \
-            'data-default-class >=0.1 && <0.3' \
-            'lens >=5.0 && <5.4' \
-            JuicyPixels rasterific-svg svg-tree random split
+          cabal install --lib --only-download Chart Chart-diagrams data-default-class lens JuicyPixels rasterific-svg svg-tree random split
           mkdir -p deps
           cp -a "$HOME/.cabal/packages/hackage.haskell.org" deps/
       - name: Upload sources
