@@ -1,0 +1,28 @@
+name: Export Haskell random deps
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Select Haskell toolchain
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.7'
+          cabal-version: '3.10.3.0'
+      - name: Fetch chart dependency closure
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cabal update
+          cabal install --lib --only-download Chart Chart-diagrams data-default-class lens JuicyPixels rasterific-svg svg-tree random split
+          mkdir -p deps
+          cp -a "$HOME/.cabal/packages/hackage.haskell.org" deps/
+      - name: Upload sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: haskell-chart-deps-cache
+          path: deps
+          compression-level: 0
+          retention-days: 1
